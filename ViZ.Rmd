@@ -1,0 +1,383 @@
+---
+title: "R Notebook"
+output:
+  html_notebook: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+library(tidyverse)
+require(ggwordcloud)
+
+```
+
+| Forkortelse | Organisasjonsform                                            |
+|--------------------|----------------------------------------------------|
+| AAFY        | *Underenhet til ikke-næringsdrivende*                        |
+| ADOS        | *Administrativ enhet -offentlig sektor*                      |
+| ANNA        | *Annen juridisk person*                                      |
+| ANS         | *Ansvarlig selskap med solidarisk ansvar*                    |
+| AS          | *Aksjeselskap*                                               |
+| ASA         | *Allmennaksjeselskap*                                        |
+| BA          | *Selskap med begrenset ansvar*                               |
+| BBL         | *Boligbyggelag*                                              |
+| BEDR        | *Underenhet til næringsdrivende og offentlig forvaltning*    |
+| BO          | *Andre bo*                                                   |
+| BRL         | *Borettslag*                                                 |
+| DA          | *Ansvarlig selskap med delt ansvar*                          |
+| ENK         | *Enkeltpersonforetak*                                        |
+| EOFG        | *Europeisk økonomisk foretaksgruppe*                         |
+| ESEK        | *Eierseksjonssameie*                                         |
+| FKF         | *Fylkeskommunalt foretak*                                    |
+| FLI         | *Forening/lag/innretning*                                    |
+| FYLK        | *Fylkeskommune*                                              |
+| GFS         | *Gjensidig forsikringsselskap*                               |
+| IKJP        | *Andre ikke-juridiske personer*                              |
+| IKS         | *Interkommunalt selskap*                                     |
+| KBO         | *Konkursbo*                                                  |
+| KF          | *Kommunalt foretak*                                          |
+| KIRK        | *Den norske kirke*                                           |
+| KOMM        | *Kommune*                                                    |
+| KS          | *Kommandittselskap*                                          |
+| KTRF        | *Kontorfellesskap*                                           |
+| NUF         | *Norskregistrert utenlandsk foretak*                         |
+| OPMV        | *Særskilt oppdelt enhet, jf. mval. § 2-2*                    |
+| ORGL        | *Organisasjonsledd*                                          |
+| PERS        | *Andre enkeltpersoner som registreres i tilknyttet register* |
+| PK          | *Pensjonskasse*                                              |
+| PRE         | *Partrederi*                                                 |
+| SA          | *Samvirkeforetak*                                            |
+| SAM         | *Tingsrettslig sameie*                                       |
+| SE          | *Europeisk selskap*                                          |
+| SF          | *Statsforetak*                                               |
+| SPA         | *Sparebank*                                                  |
+| STAT        | *Staten*                                                     |
+| STI         | *Stiftelse*                                                  |
+| SÆR         | *Annet foretak iflg. særskilt lov*                           |
+| TVAM        | *Tvangsregistrert for MVA*                                   |
+| UTLA        | *Utenlandsk enhet*                                           |
+| VPFO        | *Verdipapirfond*                                             |
+
+
+```{r}
+y90s <- brreg |> 
+  mutate(registreringsdato_i_enhetsregisteret = 
+           lubridate::floor_date(registreringsdato_i_enhetsregisteret,unit = "year"),
+         orgform = case_when(
+           organisasjonsform_kode == "ENK" ~ "ENK",
+           organisasjonsform_kode == "AS" ~ "AS",
+           organisasjonsform_kode == "FLI" ~ "forening/lag/innret.",
+           organisasjonsform_kode == "DA" ~ "delt ansvar",
+           organisasjonsform_kode == "BRL" ~ "borettslag",
+           organisasjonsform_kode == "ANS" ~ "solidarisk ansvar",
+           organisasjonsform_kode == "SA" ~ "samvirke",
+           organisasjonsform_kode == "STI" ~ "stiftelse",
+           organisasjonsform_kode == "NUF" ~ "NUF",
+           .default = "andre (25)"
+         )) |> 
+  filter(format(registreringsdato_i_enhetsregisteret,"%Y") < 2000 &
+           format(registreringsdato_i_enhetsregisteret, "%Y") != 1995) |> 
+  summarise(antall = n(),.by = c(registreringsdato_i_enhetsregisteret,orgform)) |> 
+  mutate(
+    andel = antall/sum(antall),
+    orgform = forcats::fct_reorder(orgform,andel)
+    ) |> 
+  ggplot(aes(registreringsdato_i_enhetsregisteret,
+             antall,
+             fill = orgform)) +
+  geom_col() +
+  dark_theme_minimal()+
+  labs(
+    x = "",
+    y = "Number of entities registered per year",
+    fill = "Organisasjonsform"
+  ) +
+  scale_fill_discrete()
+```
+
+```{r}
+y00s <- brreg |> 
+  mutate(registreringsdato_i_enhetsregisteret = lubridate::floor_date
+         (registreringsdato_i_enhetsregisteret,unit = "year"),
+         orgform = case_when(
+           organisasjonsform_kode == "ENK" ~ "ENK",
+           organisasjonsform_kode == "AS" ~ "AS",
+           organisasjonsform_kode == "FLI" ~ "forening/lag/innret.",
+           organisasjonsform_kode == "DA" ~ "delt ansvar",
+           organisasjonsform_kode == "BRL" ~ "borettslag",
+           organisasjonsform_kode == "ANS" ~ "solidarisk ansvar",
+           organisasjonsform_kode == "SA" ~ "samvirke",
+           organisasjonsform_kode == "STI" ~ "stiftelse",
+           organisasjonsform_kode == "NUF" ~ "NUF",
+           .default = "andre (25)"
+         )) |> 
+  filter(format(registreringsdato_i_enhetsregisteret,"%Y") >= 2000
+         & format(registreringsdato_i_enhetsregisteret,"%Y") < 2010) |> 
+  summarise(antall = n(),.by = c(registreringsdato_i_enhetsregisteret,orgform)) |> 
+  mutate(
+    andel = antall/sum(antall),
+    orgform = forcats::fct_reorder(orgform,andel)
+    ) |> 
+  ggplot(aes(registreringsdato_i_enhetsregisteret,
+             antall,
+             fill = orgform)) +
+  geom_col() +
+  dark_theme_minimal()+
+  labs(
+    x = "",
+    y = "Number of entities registered per year",
+    fill = "Organisasjonsform"
+  ) +
+  scale_fill_discrete()
+```
+
+```{r}
+y10s <- brreg |> 
+  mutate(registreringsdato_i_enhetsregisteret = lubridate::floor_date
+         (registreringsdato_i_enhetsregisteret,unit = "year"),
+         orgform = case_when(
+           organisasjonsform_kode == "ENK" ~ "ENK",
+           organisasjonsform_kode == "AS" ~ "AS",
+           organisasjonsform_kode == "FLI" ~ "forening/lag/innret.",
+           organisasjonsform_kode == "DA" ~ "delt ansvar",
+           organisasjonsform_kode == "BRL" ~ "borettslag",
+           organisasjonsform_kode == "ANS" ~ "solidarisk ansvar",
+           organisasjonsform_kode == "SA" ~ "samvirke",
+           organisasjonsform_kode == "STI" ~ "stiftelse",
+           organisasjonsform_kode == "NUF" ~ "NUF",
+           .default = "andre (25)"
+         )) |> 
+  filter(format(registreringsdato_i_enhetsregisteret,"%Y") >= 2010 &
+           format(registreringsdato_i_enhetsregisteret,"%Y") < 2020) |> 
+  summarise(antall = n(),.by = c(registreringsdato_i_enhetsregisteret,orgform)) |> 
+  mutate(
+    andel = antall/sum(antall),
+    orgform = forcats::fct_reorder(orgform,andel)
+    ) |> 
+  ggplot(aes(registreringsdato_i_enhetsregisteret,
+             antall,
+             fill = orgform)) +
+  geom_col() +
+  dark_theme_minimal()+
+  labs(
+    x = "",
+    y = "Number of entities registered per year",
+    fill = "Organisasjonsform"
+  ) +
+  scale_fill_discrete()
+```
+
+```{r}
+y20s <- brreg |> 
+  mutate(registreringsdato_i_enhetsregisteret = 
+           lubridate::floor_date(registreringsdato_i_enhetsregisteret, unit = "year"),
+         orgform = case_when(
+           organisasjonsform_kode == "ENK" ~ "ENK",
+           organisasjonsform_kode == "AS" ~ "AS",
+           organisasjonsform_kode == "FLI" ~ "forening/lag/innret.",
+           organisasjonsform_kode == "DA" ~ "delt ansvar",
+           organisasjonsform_kode == "BRL" ~ "borettslag",
+           organisasjonsform_kode == "ANS" ~ "solidarisk ansvar",
+           organisasjonsform_kode == "SA" ~ "samvirke",
+           organisasjonsform_kode == "STI" ~ "stiftelse",
+           organisasjonsform_kode == "NUF" ~ "NUF",
+           .default = "andre (25)"
+         )) |> 
+  filter(format(registreringsdato_i_enhetsregisteret,"%Y") >= 2020) |> 
+  summarise(antall = n(), .by = c(registreringsdato_i_enhetsregisteret,orgform)) |> 
+  mutate(
+    andel = antall/sum(antall),
+    orgform = forcats::fct_reorder(orgform,andel)
+    ) |> 
+  ggplot(aes(registreringsdato_i_enhetsregisteret,
+             antall,
+             fill = orgform)) +
+  geom_col() +
+  dark_theme_minimal()+
+  labs(
+    x = "",
+    y = "Number of entities registered per year",
+    fill = "Organisasjonsform"
+  ) +
+  scale_fill_discrete()
+```
+
+```{r}
+
+# install.packages("patchwork")
+# install.packages("ggpubr")
+# library(patchwork)
+# library(ggpubr)
+
+y90s
+y00s 
+y10s
+y20s
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+```{r}
+brreg |> 
+    filter(organisasjonsform_kode %in% c("ENK","AS"),
+           registreringsdato_i_enhetsregisteret > "1995-12-31") |> 
+  mutate(year = floor_date(registreringsdato_i_enhetsregisteret, "year")) |> 
+  mutate(year = year(year)) |> 
+  group_by(organisasjonsform_kode, year) |> 
+  count(.drop = T) |> 
+  ungroup() |> 
+  ggplot(aes(factor(year),n, fill=factor(organisasjonsform_kode))) +
+  geom_col() +
+  dark_mode() +
+  labs(fill = "Org.form",
+       y = "Antall registrert AS/ENK per år",
+       x = "År") +
+  theme(
+    axis.text.x = element_text(angle=45, vjust = .9, hjust = .9),
+    legend.position = "top",
+    legend.title.position = "top",
+    legend.title = element_text(hjust = .5)
+  )
+```
+
+```{r}
+# require(ggplot2)
+# require(lubridate)
+# require(ggdark)
+
+brreg |> 
+    filter(organisasjonsform_kode %in% c("ENK"),
+           registreringsdato_i_enhetsregisteret > "1995-12-31") |> 
+  mutate(year = floor_date(registreringsdato_i_enhetsregisteret, "year")) |> 
+  mutate(year = year(year)) |> 
+  group_by(organisasjonsform_kode, year, institusjonell_sektorkode) |> 
+  count(.drop = T) |> 
+  ungroup() |> 
+  ggplot(aes(factor(year),n, fill=factor(institusjonell_sektorkode))) +
+  geom_col() +
+  dark_mode() +
+  labs(fill = "Sektor",
+       y = "Antall registrert ENK/sektor per år",
+       x = "År") +
+  theme(
+    axis.text.x = element_text(angle=45, vjust = .9, hjust = .9),
+    legend.position = "top",
+    legend.title.position = "top",
+    legend.title = element_text(hjust = .5),
+    panel.grid.major = element_line(colour = alpha("#9999FF", 0.25))
+  ) +
+  facet_grid(rows = vars(institusjonell_sektorkode), scales = "free_y")
+```
+
+# Enkeltpersonforetak innenfor sektor 4900
+
+***Øvrige finansielle foretak untatt forsikring***
+
+```{r}
+require(tidyr)
+# install.packages("ggwordcloud")
+# library(ggwordcloud)
+brreg |> 
+  filter(registreringsdato_i_enhetsregisteret > "2015-12-31" &
+           organisasjonsform_kode == "ENK" &
+           institusjonell_sektorkode == "4900") |> 
+  mutate(naeringskode = case_when(
+    naeringskode_1 == "64.308" ~ "familieeide egeninvesteringsselskaper",
+    naeringskode_1 == "66.190" ~ "andre finansielle tjenester",
+    naeringskode_1 == "66.210" ~ "risiko- og skadevurdering",
+    naeringskode_1 == "66.220" ~ "forsikringsformidling",
+    naeringskode_1 == "66.290" ~ "a. tjen. innen forsikring og pensjon",
+    .default = "annet"
+  )) |>
+  group_by(naeringskode) |> 
+  summarise(n = n(), .groups = "keep") |> 
+  arrange(desc(n)) |> 
+  ggplot(aes(forcats::fct_reorder(naeringskode,n, .desc = T), n, fill = naeringskode)) +
+  geom_col(stat = "identity") +
+  dark_theme_minimal() +
+  labs(
+    title = "antall registrerte ENK innen andre finansielle tjenester unntatt forsikring (4900)",
+    x = "næringskategorier",
+    y = "antall registrerte ENK",
+    fill = ""
+  ) +
+  theme(
+    axis.text.x = element_text(angle=45, vjust = .9, hjust = .9),
+    legend.position = "none",
+    legend.title.position = "top",
+    legend.title = element_text(hjust = .5),
+    panel.grid.major = element_line(colour = alpha("#9999FF", 0.25))
+  )
+
+```
+
+```{r}
+norsk_stoppord <- c(
+  "å", "alle", "andre", "annen", "at", "av", "både", "båe", "bare", "begge", "bistand",
+  "ble", "blei", "bli", "blir", "blitt", "bort", "bra", "bruke", "da", "då", "de",
+  "deg", "dei", "deim", "deira", "deires", "dem", "den", "denne", "der", "dere",
+  "deres", "det", "dette", "di", "din", "disse", "dit", "ditt", "diverse", "du", "dykk",
+  "dykkar", "eg", "ein", "eit", "eitt", "eller", "elles", "en", "ene", "eneste",
+  "enhver", "enn", "er", "et", "ett", "etter", "f.eks", "få", "for", "før", "fordi",
+  "forsøke", "først", "fra", "fram", "gå", "gjennom", "gjorde", "gjøre", "god", "ha",
+  "hadde", "han", "hans", "har", "hennar", "henne", "hennes", "her", "herunder",
+  "heter", "hit", "hjå", "ho", "hoe", "honom", "hoss", "hossen", "hun", "hva", "hvem",
+  "hver", "hvilke", "hvilken", "hvis", "hvor", "hvordan", "hvorfor", "i", "ikke", "ikkje",
+  "ingen", "ingi", "inkje", "inn", "innen", "innenfor", "inni", "ja", "jeg", "kan", "kom",
+  "korleis", "korso", "kun", "kunne", "kva", "kvar", "kvarhelst", "kven", "kvi",
+  "kvifor", "lage", "lang", "lik", "like", "må", "man", "mange", "måte", "me",
+  "med", "medan", "meg", "meget", "mellom", "men", "mens", "mer", "mest", "mi",
+  "min", "mine", "mitt", "mot", "mv", "m.v", "mye", "mykje", "nå", "når", "ned", "nei",
+  "no", "noe", "noen", "noka", "noko", "nokon", "nokor", "nokre", "non", "ny", "og",
+  "også", "om", "opp", "oss", "osv", "over", "på", "rett", "riktig", "så", "samme", "samt",
+  "samtidig", "sånn", "seg", "selv", "si", "sia", "sidan", "siden", "sin", "sine", "sist",
+  "sitt", "sjøl", "skal", "skulle", "slik", "slutt", "so", "som", "somme", 
+  "somt", "start", "stille", "står", "tid", "til", "tilbake", "tilknyttet", "tilknyttet", 
+  "uavhengig", "um", "under", "upp", "ut", "uten", "være", "vært", "var", 
+  "vår", "vart", "varte", "ved", "verdi", "vere", "verte", "vi", "via", "vil", "ville",
+  "vite", "vore", "vors", "vort", "yter")
+
+ENK_grams <- brreg |> 
+  filter(registreringsdato_i_enhetsregisteret > "2015-12-31" &
+           organisasjonsform_kode == "ENK" &
+           institusjonell_sektorkode == "4900") |> 
+  mutate(naeringskode = case_when(
+    naeringskode_1 == "64.308" ~ "familieeide egeninvesteringsselskaper",
+    naeringskode_1 == "66.190" ~ "andre finansielle tjenester",
+    naeringskode_1 == "66.210" ~ "risiko- og skadevurdering",
+    naeringskode_1 == "66.220" ~ "forsikringsformidling",
+    naeringskode_1 == "66.290" ~ "a. tjen. innen forsikring og pensjon",
+    .default = "annet"
+  )) |>
+  select(naeringskode,aktivitet) |>
+  tidytext::unnest_ngrams(input = aktivitet, output = words, n = 3L)
+
+ENK_filtered <- ENK_grams |> 
+  separate(words, into = c("word1","word2","word3"), sep = " ") |>
+  filter(!word1 %in% norsk_stoppord,!word2 %in% norsk_stoppord,!word3 %in% norsk_stoppord)
+
+ENK_grams <- ENK_filtered |>  
+  unite(words,word1,word2,word3, sep = " ")
+
+ENK_grams |> 
+  tidytext::unnest_ngrams(input = words, output = words, n = 1L) |>
+  group_by(naeringskode,words) |> 
+  summarise(n = n(), .groups = "keep") |> 
+  filter(!words %in% "na") |> 
+  arrange(naeringskode,desc(n)) |> 
+  ggplot(aes(label = words, 
+             size = n^2,
+             color = n^2)) +
+  geom_text_wordcloud_area(area_corr = T, eccentricity = 1, rm_outside = T) +
+  dark_theme_minimal() +
+  # scale_radius(range = c(0,18), limits = c(0,10)) +
+  scale_size_area(max_size = 30) +
+  scale_color_gradientn(name = NULL, colors = c("#fed70b","#ffc970","#ffc297","#ffbba9",
+                                                "#ffb3b5","#ffaac2","#ff9ed4","#fd9aeb",
+                                                "#dea1f6","#bda7f8","#9eabf3","#85ade7",
+                                                "#7599ff","#6f3af6")) +
+  facet_wrap(~naeringskode)
+```
